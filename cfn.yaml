@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  VpcId:
+    Type: String
+    Description: The ID of the existing VPC where the resources will be created.
+
+  StackName:
+    Type: String
+    Description: A unique name for the CloudFormation stack.
+
+  Environ:
+    Type: String
+    Description: A unique name for the CloudFormation stack.
+
+  Tags:
+    Type: List<AWS::EC2::Instance::Tag>
+    Description: A list of tags to apply to the resources created.
+
+Resources:
+  ElasticBeanstalkApplication:
+    Type: "AWS::ElasticBeanstalk::Application"
+    Properties:
+      ApplicationName: !Ref StackName
+      Description: "Elastic Beanstalk Application"
+      Tags: !Ref Tags
+         
+  ElasticBeanstalkEnvironment:
+    Type: "AWS::ElasticBeanstalk::Environment"
+    Properties:
+      ApplicationName: !Ref ElasticBeanstalkApplication
+      EnvironmentName: !Ref Environ
+      SolutionStackName: "64bit Amazon Linux 2 v5.6.0 running Python 3.8"
+      OptionSettings: 
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: EC2KeyName
+          Value: !Ref "demo-keypair"
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: InstanceType
+          Value: t2.micro
+        - Namespace: aws:ec2:vpc
+          OptionName: VPCId
+          Value: !Ref VpcId
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: ImageId
+          Value: ami-0230bd60aa48260c6      
+        - Namespace: aws:autoscaling:asg
+          OptionName: MinSize
+          Value: 2      
+        - Namespace: aws:autoscaling:asg
+          OptionName: MaxSize
+          Value: 4
+        - Namespace: aws:elb:loadbalancer
+          OptionName: SecurityGroups
+          Value: sg-0217d9dbaf86ad7c6
+        - Namespace: aws:elb:listener:80
+          OptionName: InstancePort
+          Value: 80
+        - Namespace: aws:elb:listener:80
+          OptionName: ListenerProtocol
+          Value: HTTP
+        - Namespace: aws:elb:listener:80
+          OptionName: ListenerEnabled
+          Value: true
+        - Namespace: aws:elasticbeanstalk:application
+          OptionName: ApplicationHealthcheckURL
+          Value: "/stress" 
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: EnvironmentType
+          Value: LoadBalanced      
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: LoadBalancerType
+          Value: application
+      Tags: !Ref Tags
+
+  # ScaleOutPolicy:
+  #   Type: "AWS::AutoScaling::ScalingPolicy"
+  #   Properties:
+  #     AutoScalingGroupName: !Ref AutoScalingGroup
+  #     PolicyType: "TargetTrackingScaling"
+  #     TargetTrackingConfiguration:
+  #       PredefinedMetricSpecification:
+  #         PredefinedMetricType: "ASGAverageCPUUtilization"
+  #       TargetValue: 80
+  #       ScaleOutCooldown: 300
+  #       EstimatedInstanceWarmup: 300
+
+  # ScaleInPolicy:
+  #   Type: "AWS::AutoScaling::ScalingPolicy"
+  #   Properties:
+  #     AutoScalingGroupName: !Ref AutoScalingGroup
+  #     PolicyType: "TargetTrackingScaling"
+  #     TargetTrackingConfiguration:
+  #       PredefinedMetricSpecification:
+  #         PredefinedMetricType: "ASGAverageCPUUtilization"
+  #       TargetValue: 30
+  #       ScaleInCooldown: 600
+  #       EstimatedInstanceWarmup: 300
